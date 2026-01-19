@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA | Artisanal Coffee Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Inter:wght@200;300;400;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        coffee: {
+                            50: '#fdfaf9',
+                            100: '#f7f1ee',
+                            200: '#eee0d8',
+                            300: '#dec2b3',
+                            400: '#c4a484', 
+                            500: '#a67c52',
+                            600: '#8c5e3c',
+                            700: '#734d31',
+                            800: '#5c3e29',
+                            900: '#4a3323',
+                            950: '#0f0c0a',
+                            accent: '#ff7a00',
+                        },
+                    },
+                    fontFamily: {
+                        serif: ['Cormorant Garamond', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0f0c0a;
+            color: #f7f1ee;
+            overflow-x: hidden;
+            letter-spacing: -0.01em;
+        }
+        .glass {
+            background: rgba(15, 12, 10, 0.0);
+            backdrop-filter: blur(0px);
+            transition: all 0.5s ease;
+        }
+        .glass.scrolled {
+            background: rgba(15, 12, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        #three-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .section-content {
+            position: relative;
+            z-index: 20;
+        }
+        .hero-gradient {
+            background: linear-gradient(to bottom, rgba(15,12,10,0.4) 0%, rgba(15,12,10,1) 100%);
+        }
+        /* Menu Carousel Styles */
+        .menu-carousel-container {
+            perspective: 2000px;
+            height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .menu-item-3d {
+            position: absolute;
+            width: 350px;
+            opacity: 0;
+            transform: translateZ(-1000px) rotateY(10deg);
+            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+            pointer-events: none;
+        }
+        .menu-item-3d.active {
+            opacity: 1;
+            transform: translateZ(0) rotateY(0);
+            pointer-events: auto;
+        }
+        .menu-item-3d.prev {
+            opacity: 0;
+            transform: translateZ(-500px) rotateY(-20deg) translateX(-100%);
+        }
+        .menu-item-3d.next {
+            opacity: 0;
+            transform: translateZ(-500px) rotateY(20deg) translateX(100%);
+        }
+        .text-3d-depth {
+            text-shadow: 0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 0 5px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15);
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f0c0a; }
+        ::-webkit-scrollbar-thumb { background: #c4a484; border-radius: 10px; }
+    </style>
+</head>
+<body class="font-sans antialiased">
+
+    <canvas id="three-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav id="navbar" class="fixed top-0 w-full z-50 glass py-5 px-6 md:px-12 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-coffee-400 rounded-full flex items-center justify-center text-coffee-950 font-serif font-bold">A</div>
+            <div class="text-xl font-serif font-semibold tracking-[0.3em] text-white">AURA</div>
+        </div>
+        <div class="hidden md:flex gap-10 text-[10px] uppercase tracking-[0.2em] font-medium text-stone-300">
+            <a href="#home" class="relative group hover:text-white transition-colors">Home
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-coffee-400 group-hover:w-full transition-all duration-300"></span>
+            </a>
+            <a href="#about" class="relative group hover:text-white transition-colors">About
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-coffee-400 group-hover:w-full transition-all duration-300"></span>
+            </a>
+            <a href="#menu" class="relative group hover:text-white transition-colors">Menu
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-coffee-400 group-hover:w-full transition-all duration-300"></span>
+            </a>
+            <a href="#experience" class="relative group hover:text-white transition-colors">Experience
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-coffee-400 group-hover:w-full transition-all duration-300"></span>
+            </a>
+            <a href="#order" class="relative group hover:text-white transition-colors">Order
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-coffee-400 group-hover:w-full transition-all duration-300"></span>
+            </a>
+            <a href="#contact" class="relative group hover:text-white transition-colors">Contact
+                <span class="absolute -bottom-1 left-0 w-0 h-px bg-coffee-400 group-hover:w-full transition-all duration-300"></span>
+            </a>
+        </div>
+        <button class="bg-coffee-400 text-coffee-950 px-7 py-2 rounded-full text-[11px] uppercase tracking-widest font-bold hover:bg-white transition-all">
+            Find Us
+        </button>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="relative h-screen flex items-center justify-center text-center px-4 overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=2070" 
+                 alt="Cafe Interior" class="w-full h-full object-cover">
+            <div class="absolute inset-0 hero-gradient"></div>
+        </div>
+        
+        <div class="section-content max-w-5xl">
+            <div class="inline-block mb-4 overflow-hidden">
+                <span class="text-coffee-400 uppercase tracking-[0.4em] text-xs font-semibold block opacity-0 hero-fade">Brewed with Passion</span>
+            </div>
+            <h1 class="text-7xl md:text-9xl font-serif mb-10 opacity-0 translate-y-20 hero-title leading-tight">Artisanal <br><span class="italic">Atmosphere</span></h1>
+            <p class="text-lg md:text-xl font-light text-stone-300 mb-12 opacity-0 translate-y-10 hero-subtitle max-w-2xl mx-auto leading-relaxed">
+                Experience the perfect cup, crafted for the connoisseur in a space designed for quiet luxury.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-6 justify-center items-center opacity-0 translate-y-10 hero-btns">
+                <a href="#menu" class="px-10 py-5 border border-coffee-400 text-coffee-400 rounded-full font-bold hover:bg-coffee-400 hover:text-coffee-950 transition-all duration-500 tracking-widest text-xs">EXPLORE MENU</a>
+                <a href="#order" class="px-10 py-5 bg-white text-black rounded-full font-bold hover:bg-coffee-400 transition-all duration-500 tracking-widest text-xs">ORDER NOW</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="min-h-screen flex flex-col md:flex-row items-center px-8 md:px-32 py-32 bg-coffee-950 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-1/2 h-full bg-coffee-900/10 pointer-events-none"></div>
+        <div class="section-content w-full md:w-1/2 space-y-12 about-text">
+            <div class="space-y-4">
+                <span class="text-coffee-accent uppercase tracking-widest text-[10px] font-bold block">Our Story</span>
+                <h2 class="text-5xl md:text-7xl font-serif leading-none text-white">The Aura <br>Philosophy</h2>
+            </div>
+            <div class="space-y-6 text-stone-400 font-light text-lg leading-relaxed max-w-md">
+                <p>
+                    Aura began as a pursuit of the ultimate espresso. We stripped away the commercial noise to focus on the raw, honest beauty of the coffee cherry.
+                </p>
+                <p>
+                    Every detail—from the temperature of our ceramic cups to the humidity of our roasting room—is monitored with clinical precision and poetic passion.
+                </p>
+            </div>
+            <button class="text-white border-b border-coffee-400 pb-2 text-sm uppercase tracking-widest font-bold hover:text-coffee-400 transition-colors">Our Origins</button>
+        </div>
+        <div class="w-full md:w-1/2 h-96"></div> <!-- 3D Placeholder -->
+    </section>
+
+    <!-- Menu Section (Product Showcase) -->
+    <section id="menu" class="min-h-screen py-32 px-6 md:px-24 bg-stone-900/20">
+        <div class="text-center mb-10">
+            <span class="text-coffee-400 uppercase tracking-widest text-[10px] font-bold">The Collection</span>
+            <h2 class="text-5xl md:text-7xl font-serif mt-2">What We Serve</h2>
+        </div>
+
+        <div class="menu-carousel-container">
+            <!-- Items are cycled through JS -->
+            <div class="menu-item-3d active" data-index="0">
+                <div class="bg-coffee-950 p-10 rounded-[40px] border border-white/5 shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?auto=format&fit=crop&q=80&w=800" class="w-full h-64 object-cover rounded-3xl mb-8 shadow-xl" alt="Espresso">
+                    <h3 class="text-4xl font-serif mb-2 text-3-depth">Espresso</h3>
+                    <p class="text-stone-400 mb-6 text-sm">Intense, aromatic, and bold. The purest expression of our beans.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-serif text-coffee-400">₹240</span>
+                        <button class="bg-white text-black px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest">Add</button>
+                    </div>
+                </div>
+            </div>
+            <div class="menu-item-3d" data-index="1">
+                <div class="bg-coffee-950 p-10 rounded-[40px] border border-white/5 shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1534706936160-d5ee67737049?auto=format&fit=crop&q=80&w=800" class="w-full h-64 object-cover rounded-3xl mb-8 shadow-xl" alt="Cappuccino">
+                    <h3 class="text-4xl font-serif mb-2 text-3-depth">Cappuccino</h3>
+                    <p class="text-stone-400 mb-6 text-sm">Silky micro-foam and rich espresso in perfect 1:1 harmony.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-serif text-coffee-400">₹320</span>
+                        <button class="bg-white text-black px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest">Add</button>
+                    </div>
+                </div>
+            </div>
+            <div class="menu-item-3d" data-index="2">
+                <div class="bg-coffee-950 p-10 rounded-[40px] border border-white/5 shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1593967858208-67ddb5b4c406?auto=format&fit=crop&q=80&w=800" class="w-full h-64 object-cover rounded-3xl mb-8 shadow-xl" alt="Latte">
+                    <h3 class="text-4xl font-serif mb-2 text-3-depth">Velvet Latte</h3>
+                    <p class="text-stone-400 mb-6 text-sm">A creamy, smooth journey with subtle hints of vanilla.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-serif text-coffee-400">₹380</span>
+                        <button class="bg-white text-black px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest">Add</button>
+                    </div>
+                </div>
+            </div>
+            <div class="menu-item-3d" data-index="3">
+                <div class="bg-coffee-950 p-10 rounded-[40px] border border-white/5 shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1544787210-282aa52e165d?auto=format&fit=crop&q=80&w=800" class="w-full h-64 object-cover rounded-3xl mb-8 shadow-xl" alt="Mocha">
+                    <h3 class="text-4xl font-serif mb-2 text-3-depth">Dark Mocha</h3>
+                    <p class="text-stone-400 mb-6 text-sm">70% single-origin dark chocolate blended with our signature roast.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-serif text-coffee-400">₹450</span>
+                        <button class="bg-white text-black px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest">Add</button>
+                    </div>
+                </div>
+            </div>
+            <div class="menu-item-3d" data-index="4">
+                <div class="bg-coffee-950 p-10 rounded-[40px] border border-white/5 shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&q=80&w=800" class="w-full h-64 object-cover rounded-3xl mb-8 shadow-xl" alt="Cold Brew">
+                    <h3 class="text-4xl font-serif mb-2 text-3-depth">Kyoto Cold Brew</h3>
+                    <p class="text-stone-400 mb-6 text-sm">12-hour slow extraction for a low-acid, high-caffeine clarity.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-serif text-coffee-400">₹420</span>
+                        <button class="bg-white text-black px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest">Add</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-center gap-10 mt-12">
+            <button id="prevBtn" class="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-coffee-400 hover:text-black transition-all">←</button>
+            <button id="nextBtn" class="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-coffee-400 hover:text-black transition-all">→</button>
+        </div>
+    </section>
+
+    <!-- Experience Section -->
+    <section id="experience" class="h-screen relative flex items-center justify-center overflow-hidden">
+        <img src="https://images.unsplash.com/photo-1507133750040-4a8f57021571?auto=format&fit=crop&q=80&w=2070" 
+             alt="Cafe Atmosphere" class="absolute inset-0 w-full h-full object-cover scale-110 parallax-img">
+        <div class="absolute inset-0 bg-coffee-950/60"></div>
+        <div class="section-content text-center px-6">
+            <h2 class="text-5xl md:text-8xl font-serif italic mb-6">"Not Just Coffee. It's an Experience."</h2>
+            <p class="text-coffee-400 uppercase tracking-[0.5em] text-sm">A sanctuary for the senses</p>
+        </div>
+    </section>
+
+    <!-- Order Section -->
+    <section id="order" class="min-h-screen flex items-center justify-center px-6 py-32 bg-coffee-950">
+        <div class="w-full max-w-5xl bg-stone-900/40 p-12 rounded-[50px] border border-white/5 backdrop-blur-xl flex flex-col md:flex-row gap-16">
+            <div class="flex-1 space-y-8">
+                <h2 class="text-5xl font-serif">Quick Reservation</h2>
+                <p class="text-stone-400 font-light">Custom order your drink and have it ready for pickup upon arrival.</p>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-widest text-stone-500 mb-3 font-bold">Select Brew</label>
+                        <select class="w-full bg-black/40 border border-white/10 p-4 rounded-2xl text-stone-300 outline-none focus:border-coffee-400 transition-colors">
+                            <option>Kyoto Cold Brew</option>
+                            <option>Artisanal Latte</option>
+                            <option>Double Espresso</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-6">
+                        <div class="flex-1">
+                            <label class="block text-[10px] uppercase tracking-widest text-stone-500 mb-3 font-bold">Size</label>
+                            <div class="flex gap-3">
+                                <button class="flex-1 py-3 border border-white/10 rounded-xl hover:border-coffee-400 transition-all">S</button>
+                                <button class="flex-1 py-3 bg-coffee-400 text-black rounded-xl font-bold">M</button>
+                                <button class="flex-1 py-3 border border-white/10 rounded-xl hover:border-coffee-400 transition-all">L</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 flex flex-col justify-end gap-10">
+                <div class="bg-black/20 p-8 rounded-3xl border border-white/5">
+                    <div class="flex justify-between mb-4">
+                        <span class="text-stone-400">Base Price</span>
+                        <span class="text-white">₹420</span>
+                    </div>
+                    <div class="flex justify-between mb-4">
+                        <span class="text-stone-400">Tax (GST)</span>
+                        <span class="text-white">₹18</span>
+                    </div>
+                    <div class="h-px bg-white/10 my-4"></div>
+                    <div class="flex justify-between text-xl font-serif">
+                        <span class="text-coffee-400">Total</span>
+                        <span class="text-white">₹438</span>
+                    </div>
+                </div>
+                <button class="w-full py-5 bg-white text-black rounded-full font-bold uppercase tracking-widest hover:bg-coffee-400 transition-all active:scale-[0.98]">Confirm Order</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="min-h-screen py-32 px-6 md:px-24 bg-coffee-950">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-20">
+            <div class="w-full md:w-1/2 space-y-12">
+                <h2 class="text-6xl font-serif">Visit the Aura Room</h2>
+                <div class="space-y-8">
+                    <div class="flex gap-6 items-start">
+                        <div class="text-coffee-400 text-2xl">📍</div>
+                        <div>
+                            <h4 class="font-bold uppercase tracking-widest text-xs mb-2">Location</h4>
+                            <p class="text-stone-400 font-light">42 Artisanal Way, Coffee District,<br>Mumbai, Maharashtra 400001</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-6 items-start">
+                        <div class="text-coffee-400 text-2xl">📞</div>
+                        <div>
+                            <h4 class="font-bold uppercase tracking-widest text-xs mb-2">Phone</h4>
+                            <p class="text-stone-400 font-light">+91 98200 12345</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-6 items-start">
+                        <div class="text-coffee-400 text-2xl">⏰</div>
+                        <div>
+                            <h4 class="font-bold uppercase tracking-widest text-xs mb-2">Hours</h4>
+                            <p class="text-stone-400 font-light">Mon — Fri: 08:00 - 22:00<br>Sat — Sun: 09:00 - 23:00</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-6 pt-6">
+                    <a href="#" class="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white hover:text-black transition-all">IG</a>
+                    <a href="#" class="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white hover:text-black transition-all">TW</a>
+                    <a href="#" class="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white hover:text-black transition-all">FB</a>
+                </div>
+            </div>
+            <div class="w-full md:w-1/2 rounded-[40px] overflow-hidden grayscale brightness-50 border border-white/5">
+                <!-- Placeholder for map -->
+                <div class="w-full h-full bg-stone-900 flex items-center justify-center min-h-[400px]">
+                    <span class="text-stone-700 tracking-[1em] text-[10px] uppercase">Map Interface</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-20 px-12 bg-black border-t border-white/5">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
+            <div class="text-2xl font-serif font-bold tracking-[0.3em] text-coffee-400">AURA</div>
+            <div class="flex gap-10 text-[10px] uppercase tracking-widest font-light text-stone-500">
+                <a href="#" class="hover:text-white transition-colors">Origins</a>
+                <a href="#" class="hover:text-white transition-colors">Roastery</a>
+                <a href="#" class="hover:text-white transition-colors">Journal</a>
+                <a href="#" class="hover:text-white transition-colors">Privacy</a>
+            </div>
+            <p class="text-stone-700 text-[10px] uppercase tracking-widest">© 2024 Aura Artisanal Coffee. All rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- THREE.JS SETUP ---
+        let scene, camera, renderer, cupGroup, shadowPlane, steamParticles = [];
+        const canvas = document.querySelector('#three-canvas');
+
+        function initThree() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 6;
+
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // Studio Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            keyLight.position.set(5, 5, 5);
+            scene.add(keyLight);
+
+            const fillLight = new THREE.PointLight(0xc4a484, 0.8);
+            fillLight.position.set(-5, 2, 2);
+            scene.add(fillLight);
+
+            const rimLight = new THREE.SpotLight(0xffffff, 1.2);
+            rimLight.position.set(0, 10, -5);
+            scene.add(rimLight);
+
+            // Detailed Coffee Cup
+            cupGroup = new THREE.Group();
+
+            const paperMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0 });
+            const sleeveMat = new THREE.MeshStandardMaterial({ color: 0xc4a484, roughness: 1.0, bumpScale: 0.05 });
+            const plasticMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, metalness: 0.05 });
+
+            const bodyGeom = new THREE.CylinderGeometry(0.85, 0.62, 2.4, 64);
+            const body = new THREE.Mesh(bodyGeom, paperMat);
+            cupGroup.add(body);
+
+            const sleeveGeom = new THREE.CylinderGeometry(0.87, 0.77, 1.0, 64);
+            const sleeve = new THREE.Mesh(sleeveGeom, sleeveMat);
+            sleeve.position.y = -0.1;
+            cupGroup.add(sleeve);
+
+            const lidBaseGeom = new THREE.CylinderGeometry(0.9, 0.9, 0.12, 64);
+            const lidBase = new THREE.Mesh(lidBaseGeom, plasticMat);
+            lidBase.position.y = 1.25;
+            cupGroup.add(lidBase);
+
+            const lidTopGeom = new THREE.CylinderGeometry(0.7, 0.88, 0.25, 64);
+            const lidTop = new THREE.Mesh(lidTopGeom, plasticMat);
+            lidTop.position.y = 1.4;
+            cupGroup.add(lidTop);
+
+            // Aura Branding on sleeve
+            const logoGeom = new THREE.CircleGeometry(0.28, 32);
+            const logoMat = new THREE.MeshBasicMaterial({ color: 0x4a3323 });
+            const logo = new THREE.Mesh(logoGeom, logoMat);
+            logo.position.set(0, -0.1, 0.85);
+            cupGroup.add(logo);
+
+            // Simple Steam Effect
+            const steamGroup = new THREE.Group();
+            const steamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
+            const steamGeom = new THREE.SphereGeometry(0.05, 8, 8);
+            for(let i=0; i<15; i++) {
+                const p = new THREE.Mesh(steamGeom, steamMat.clone());
+                p.position.set((Math.random()-0.5)*0.5, 1.5 + Math.random(), (Math.random()-0.5)*0.5);
+                p.speed = 0.005 + Math.random() * 0.01;
+                steamGroup.add(p);
+                steamParticles.push(p);
+            }
+            cupGroup.add(steamGroup);
+
+            scene.add(cupGroup);
+
+            // Ground Shadow
+            const shadowGeom = new THREE.PlaneGeometry(2, 2);
+            const shadowMat = new THREE.MeshBasicMaterial({ 
+                color: 0x000000, transparent: true, opacity: 0.2,
+                map: createRadialGradientTexture()
+            });
+            shadowPlane = new THREE.Mesh(shadowGeom, shadowMat);
+            shadowPlane.rotation.x = -Math.PI / 2;
+            shadowPlane.position.y = -1.3;
+            scene.add(shadowPlane);
+            
+            animate();
+        }
+
+        function createRadialGradientTexture() {
+            const c = document.createElement('canvas');
+            c.width = 64; c.height = 64;
+            const ctx = c.getContext('2d');
+            const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+            return new THREE.CanvasTexture(c);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = Date.now() * 0.001;
+            cupGroup.position.y += Math.sin(t * 0.5) * 0.0006;
+            cupGroup.rotation.y += 0.004;
+
+            steamParticles.forEach(p => {
+                p.position.y += p.speed;
+                p.material.opacity -= 0.002;
+                if(p.material.opacity <= 0) {
+                    p.position.y = 1.5;
+                    p.material.opacity = 0.2;
+                }
+            });
+
+            shadowPlane.position.x = cupGroup.position.x;
+            shadowPlane.position.z = cupGroup.position.z;
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', onWindowResize);
+
+        // --- GSAP ANIMATIONS ---
+        function initAnimations() {
+            gsap.registerPlugin(ScrollTrigger);
+            const isMobile = window.innerWidth < 768;
+
+            // Navbar Scrolled State
+            ScrollTrigger.create({
+                start: 'top -100',
+                onEnter: () => document.getElementById('navbar').classList.add('scrolled'),
+                onLeaveBack: () => document.getElementById('navbar').classList.remove('scrolled'),
+            });
+
+            // Hero Entrance
+            gsap.to('.hero-fade', { opacity: 1, duration: 1, delay: 0.2 });
+            gsap.to('.hero-title', { opacity: 1, y: 0, duration: 1.5, ease: "expo.out", delay: 0.4 });
+            gsap.to('.hero-subtitle', { opacity: 1, y: 0, duration: 1.2, ease: "power4.out", delay: 0.6 });
+            gsap.to('.hero-btns', { opacity: 1, y: 0, duration: 1, ease: "power4.out", delay: 0.8 });
+
+            // CUP JOURNEY (Fixed Canvas)
+            const cupTl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: "#home",
+                    endTrigger: "#about",
+                    start: "top top",
+                    end: "bottom top",
+                    scrub: 1,
+                    onLeave: () => { canvas.style.opacity = '0'; },
+                    onEnterBack: () => { canvas.style.opacity = '1'; }
+                }
+            });
+
+            // Hero Center -> About Right
+            cupTl.to(cupGroup.position, { x: 0, y: 0, z: 2 }, 0)
+                 .to(cupGroup.position, { x: isMobile ? 0 : 2.5, y: isMobile ? -1.5 : 0.2, z: 1 }, 1)
+                 .to(cupGroup.scale, { x: 1.2, y: 1.2, z: 1.2 }, 1);
+
+            // Parallax Section
+            gsap.to('.parallax-img', {
+                scrollTrigger: {
+                    trigger: '#experience',
+                    start: 'top bottom',
+                    end: 'bottom top',
+                    scrub: true
+                },
+                y: -100,
+                scale: 1
+            });
+
+            initMenuCarousel();
+        }
+
+        // 3D Menu Carousel Logic
+        function initMenuCarousel() {
+            const items = document.querySelectorAll('.menu-item-3d');
+            let current = 0;
+
+            const updateCarousel = (dir) => {
+                items.forEach((item, idx) => {
+                    item.classList.remove('active', 'prev', 'next');
+                    if(idx === current) {
+                        item.classList.add('active');
+                    } else if (idx === (current - 1 + items.length) % items.length) {
+                        item.classList.add('prev');
+                    } else if (idx === (current + 1) % items.length) {
+                        item.classList.add('next');
+                    }
+                });
+            };
+
+            document.getElementById('nextBtn').addEventListener('click', () => {
+                current = (current + 1) % items.length;
+                updateCarousel('next');
+            });
+            document.getElementById('prevBtn').addEventListener('click', () => {
+                current = (current - 1 + items.length) % items.length;
+                updateCarousel('prev');
+            });
+
+            // Initial classes
+            updateCarousel();
+        }
+
+        window.onload = () => {
+            initThree();
+            initAnimations();
+        };
+    </script>
+</body>
+</html>
